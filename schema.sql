@@ -83,21 +83,69 @@ begin
   end loop;
 end $$;
 
--- Current holdings, weighted average cost, marked to the latest stored price.
+-- Current holdings on a moving weighted average cost, marked to the latest
+-- stored price.
+--
+-- Cost has to be walked trade by trade, not averaged over every purchase ever
+-- made: once a symbol has been bought, partly sold and bought again, only the
+-- cost still attaching to the units on hand may be carried. Units held before
+-- the books open carry no cost, so they are excluded from the average and
+-- their disposals relieve none.
 create view holdings as
-with moves as (
-  select owner, symbol,
-         sum(case when type='BUY' then qty when type='SELL' then -qty else 0 end) as qty,
-         sum(case when type='BUY' then -amount when type='SELL' then 0 else 0 end) as buy_cost,
-         sum(case when type='BUY' then qty else 0 end) as bought
-  from transactions where symbol is not null group by owner, symbol
+with recursive ordered as (
+  select owner, symbol, type, qty, amount,
+         row_number() over (partition by owner, symbol order by trade_date, created_at) as rn
+  from transactions
+  where symbol is not null and qty is not null and type in ('BUY','SELL')
+), running as (
+  select owner, symbol, rn,
+         sum(case when type = 'BUY' then qty else -qty end)
+           over (partition by owner, symbol order by rn) as pos
+  from ordered
+), opening as (
+  -- The deepest the running quantity goes below zero is what must have been
+  -- held before the first row in the data.
+  select owner, symbol, greatest(0, -min(pos)) as open_qty
+  from running group by owner, symbol
+), walk as (
+  select o.owner, o.symbol, o.rn,
+         op.open_qty + case when o.type = 'BUY' then o.qty else -o.qty end as qty,
+         case when o.type = 'BUY' then -o.amount else 0::numeric end as cost,
+         case when o.type = 'BUY' then op.open_qty
+              else greatest(op.open_qty - o.qty, 0) end as open_left
+  from ordered o
+  join opening op on op.owner = o.owner and op.symbol = o.symbol
+  where o.rn = 1
+  union all
+  select o.owner, o.symbol, o.rn,
+         w.qty + case when o.type = 'BUY' then o.qty else -o.qty end,
+         case
+           when o.type = 'BUY' then w.cost - o.amount
+           else w.cost - round(
+             case when w.qty - w.open_left > 0
+                  then w.cost / (w.qty - w.open_left)
+                       * greatest(o.qty - least(w.open_left, o.qty), 0)
+                  else 0 end, 2)
+         end,
+         case when o.type = 'BUY' then w.open_left
+              else greatest(w.open_left - o.qty, 0) end
+  from walk w
+  join ordered o
+    on o.owner = w.owner and o.symbol = w.symbol and o.rn = w.rn + 1
+), final as (
+  select distinct on (owner, symbol) owner, symbol, qty, cost, open_left
+  from walk order by owner, symbol, rn desc
 ), latest as (
   select distinct on (owner, symbol) owner, symbol, close, as_of
   from prices order by owner, symbol, as_of desc
 )
-select m.owner, m.symbol, m.qty,
-       case when m.bought > 0 then m.buy_cost / m.bought * m.qty end as cost,
+select f.owner, f.symbol, f.qty,
+       f.open_left as opening_qty,          -- units on hand that carry no cost
+       f.cost,
+       case when f.qty > 0 then f.cost / f.qty end as avg_cost,
        l.close, l.as_of,
-       case when l.close is not null then l.close * m.qty end as market_value
-from moves m left join latest l on l.owner = m.owner and l.symbol = m.symbol
-where m.qty > 0;
+       case when l.close is not null then round(l.close * f.qty, 2) end as market_value,
+       case when l.close is not null then round(l.close * f.qty - f.cost, 2) end as unrealised
+from final f
+left join latest l on l.owner = f.owner and l.symbol = f.symbol
+where f.qty > 0;

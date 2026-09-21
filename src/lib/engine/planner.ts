@@ -136,9 +136,12 @@ export function costPlan(
   let costRelieved: number | null = null;
   let gain: number | null = null;
   let cgtEstimate: number | null = null;
-  if (draft.side === 'SELL' && held && held.avgCost != null && qty > 0) {
+  if (draft.side === 'SELL' && held && qtyBefore > 0 && qty > 0) {
     const sellable = Math.min(qty, qtyBefore);
-    costRelieved = r2(held.avgCost * sellable);
+    // The full-precision average, not the rounded one shown on screen, so the
+    // estimate matches the cost the ledger will actually relieve.
+    const avg = (held.totalCost ?? held.cost) / held.qty;
+    costRelieved = r2(avg * sellable);
     gain = r2(r2(gross - commission - levies) * (sellable / qty) - costRelieved);
     cgtEstimate = gain > 0 ? r2(gain * CGT_RATE) : 0;
   }

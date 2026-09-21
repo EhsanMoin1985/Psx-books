@@ -82,6 +82,11 @@ export function fmtPct(n: number | null | undefined, decimals = 2): string {
   return `${n >= 0 ? '' : '-'}${Math.abs(n).toFixed(decimals)}%`;
 }
 
+/** A PKR figure for a caption, always in rupees with lakh grouping. */
+export function pkr(n: number | null | undefined, decimals = 2): string {
+  return fmtMoney(n, { currency: 'PKR', decimals });
+}
+
 export function currencySymbol(c: Currency): string {
   return c === 'PKR' ? 'Rs' : 'NZ$';
 }

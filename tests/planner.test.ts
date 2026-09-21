@@ -63,6 +63,17 @@ describe('the trade planner', () => {
     expect(oneMore.shortfall).toBeGreaterThan(0);
   });
 
+  it('estimates the cost relieved at the figure the ledger will actually book', () => {
+    // A rounded average cost would be out by a few paisa on a large position,
+    // which would put the planner's gain estimate at odds with the books.
+    const plan = costPlan({ symbol: 'PSX', side: 'SELL', qty: 2500, limitPrice: 60 }, book, cash, tx, settings);
+    const row = { ...planToTxn(plan, '2026-09-21', 999), id: 'planned' };
+    const after = buildBook([...tx, row], prices, settings);
+    const booked = after.disposals.find((d) => d.txnId === 'planned')!;
+    expect(booked.costRelieved).toBe(plan.costRelieved);
+    expect(booked.gainNet).toBe(plan.gain);
+  });
+
   it('turns a filled plan into a cash book row', () => {
     const p = costPlan({ symbol: 'UBL', side: 'BUY', qty: 100, limitPrice: 430 }, book, cash, tx, settings);
     const row = planToTxn(p, '2026-09-21', 999);

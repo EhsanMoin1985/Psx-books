@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --panel-2: #fafbfc;
+  --line: #dfe3e8;
+  --line-strong: #c4cad2;
+  --ink: #1b2330;
+  --ink-2: #4a5566;
+  --ink-3: #78828f;
+  --accent: #10505f;
+  --accent-ink: #ffffff;
+  --accent-soft: #e4eff1;
+  --pos: #10653c;
+  --neg: #a11d28;
+  --warn: #8a5a08;
+  --warn-soft: #fdf3e0;
+  --neg-soft: #fbeaec;
+  --pos-soft: #e6f2ec;
+}
+
+:root[data-theme='dark'] {
+  --bg: #11151b;
+  --panel: #1a1f27;
+  --panel-2: #1f252e;
+  --line: #2c333d;
+  --line-strong: #3d4550;
+  --ink: #e8ecf1;
+  --ink-2: #aab4c0;
+  --ink-3: #7f8a97;
+  --accent: #4fb3c8;
+  --accent-ink: #0b1116;
+  --accent-soft: #17303a;
+  --pos: #5ec98f;
+  --neg: #f08a95;
+  --warn: #e0b055;
+  --warn-soft: #2e2617;
+  --neg-soft: #33191d;
+  --pos-soft: #16291f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #11151b;
+    --panel: #1a1f27;
+    --panel-2: #1f252e;
+    --line: #2c333d;
+    --line-strong: #3d4550;
+    --ink: #e8ecf1;
+    --ink-2: #aab4c0;
+    --ink-3: #7f8a97;
+    --accent: #4fb3c8;
+    --accent-ink: #0b1116;
+    --accent-soft: #17303a;
+    --pos: #5ec98f;
+    --neg: #f08a95;
+    --warn: #e0b055;
+    --warn-soft: #2e2617;
+    --neg-soft: #33191d;
+    --pos-soft: #16291f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  font-feature-settings: 'tnum' 1, 'cv05' 1;
+}
+
+/* Figures line up column to column. */
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+table.book { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.book thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--panel-2);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+table.book tbody td { padding: 7px 10px; border-bottom: 1px solid var(--line); }
+table.book tbody tr:hover td { background: var(--panel-2); }
+table.book tfoot td {
+  padding: 9px 10px;
+  border-top: 2px solid var(--line-strong);
+  font-weight: 650;
+  background: var(--panel-2);
+}
+table.book th.num, table.book td.num { text-align: right; }
+
+/* Statement presentation: a single rule above a subtotal, a double rule below a total. */
+.rule-top { border-top: 1px solid var(--line-strong); }
+.rule-double { border-bottom: 3px double var(--line-strong); }
+
+/* A note's table must not split across a column or a page. */
+.note-block { break-inside: avoid-column; }
+.note-block table { break-inside: avoid; }
+
+a { color: inherit; }
+
+input, select, textarea, button { font: inherit; color: inherit; }
+input, select, textarea {
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 6px 8px;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; font-size: 11px; }
+  .panel { border: none; }
+  .print-block { break-inside: avoid; }
+  table.book thead th { position: static; background: none; color: #000; }
+  :root { --ink: #000; --ink-2: #222; --ink-3: #444; --line: #bbb; --line-strong: #666; --panel: #fff; --panel-2: #fff; }
+  @page { margin: 14mm; }
+}

@@ -1,5 +1,5 @@
 import type { Settings, Txn } from '../types';
-import { r2 } from '../money';
+import { fmtDate, r2 } from '../money';
 import { type Book, grossOf, transactionCostOf } from './holdings';
 import { cashBalance, orderTxns } from './ledger';
 import { CGT_RATE, type CgtSummary, dividends } from './reports';
@@ -192,12 +192,12 @@ export function buildStatements(
   ];
 
   const changesInEquity: Line[] = [
-    { label: `Balance at ${periodStart}`, value: openingEquity, total: true, note: 4 },
+    { label: `Balance at ${fmtDate(periodStart)}`, value: openingEquity, total: true, note: 4 },
     { label: 'Contributions from the owner', value: contributions },
     { label: 'Dividends banked outside the broker account', value: -externalIncome, note: 7 },
     { label: 'Withdrawals', value: withdrawals },
     { label: 'Total comprehensive income for the period', value: profit },
-    { label: `Balance at ${periodEnd}`, value: closingEquity, total: true },
+    { label: `Balance at ${fmtDate(periodEnd)}`, value: closingEquity, total: true },
   ];
 
   // --- cash flows, direct method -------------------------------------------
