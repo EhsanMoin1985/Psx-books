@@ -28,6 +28,8 @@ export interface Disposal {
   proceedsGross: number;
   /** Proceeds attributable to pre-2026 units. No gain is booked on these. */
   proceedsOpening: number;
+  /** The same proceeds before transaction costs, for the gross (IFRS) basis. */
+  proceedsOpeningGross: number;
   costRelieved: number;
   costRelievedGross: number;
   gainNet: number;
@@ -66,6 +68,8 @@ export interface Book {
   realisedNet: number;
   realisedGross: number;
   proceedsNoCost: number;
+  /** The same, before transaction costs. */
+  proceedsNoCostGross: number;
   transactionCosts: number;
   costTotal: number;
   costGrossTotal: number;
@@ -173,6 +177,7 @@ export function buildBook(txns: Txn[], prices: Price[], settings: Settings): Boo
     const qtyCosted = r4(t.qty - qtyFromOpening);
     const share = (v: number, q: number) => (t.qty ? r2((v * q) / t.qty!) : 0);
     const proceedsOpening = share(t.amount, qtyFromOpening);
+    const proceedsOpeningGross = share(gross, qtyFromOpening);
     const proceedsNet = share(t.amount, qtyCosted);
     const proceedsGross = share(gross, qtyCosted);
 
@@ -195,6 +200,7 @@ export function buildBook(txns: Txn[], prices: Price[], settings: Settings): Boo
       proceedsNet,
       proceedsGross,
       proceedsOpening,
+      proceedsOpeningGross,
       costRelieved,
       costRelievedGross,
       gainNet,
@@ -249,6 +255,7 @@ export function buildBook(txns: Txn[], prices: Price[], settings: Settings): Boo
     realisedNet: disposals.reduce((a, d) => r2(a + d.gainNet), 0),
     realisedGross: disposals.reduce((a, d) => r2(a + d.gainGross), 0),
     proceedsNoCost: disposals.reduce((a, d) => r2(a + d.proceedsOpening), 0),
+    proceedsNoCostGross: disposals.reduce((a, d) => r2(a + d.proceedsOpeningGross), 0),
     transactionCosts,
     costTotal: holdings.reduce((a, h) => r2(a + (h.totalCost ?? h.cost)), 0),
     costGrossTotal: holdings.reduce((a, h) => r2(a + h.costGross), 0),
