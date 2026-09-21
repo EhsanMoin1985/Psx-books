@@ -249,9 +249,13 @@ export default async function StatementsPage() {
               <Money value={dt.unrecognisedDeferredTaxAsset} /> would arise on those losses.{' '}
               <strong>It is not recognised.</strong> Capital losses on listed securities can be set only against capital
               gains of the same kind, and the owner cannot demonstrate that sufficient future gains will arise against
-              which the losses could be used. The deferred tax liability of{' '}
-              <Money value={dt.deferredTaxLiability} /> on unrealised gains is likewise not recognised, being immaterial
-              and offset by the unrecognised asset.
+              which the losses could be used.{' '}
+              {dt.gains === 0 ? (
+                <>No holding stands at an unrealised gain, so no deferred tax liability arises.</>
+              ) : (
+                <>The deferred tax liability of <Money value={dt.deferredTaxLiability} /> on the unrealised gains is
+                  likewise not recognised, being more than covered by the unrecognised asset.</>
+              )}
             </p>
             <p>
               The owner is an individual resident in New Zealand. Any New Zealand tax consequence of this activity is a
