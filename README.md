@@ -87,6 +87,28 @@ lasts only until the server restarts, and a banner says so.
    pass `--force`, so it cannot double up a book.
 5. Open **Reconcile** and confirm cash proves on all 59 rows.
 
+### Auth settings that matter
+
+In **Authentication → URL Configuration**, set **Site URL** to where the app
+runs and add every origin you will sign in from to **Redirect URLs**, including
+`http://localhost:3000/**` for development and the Vercel URL once deployed. A
+magic link whose target is not on that list is rejected.
+
+Open the sign-in link **in the browser that asked for it**. The flow keeps a
+one-time verifier in that browser, so a link forwarded to a phone or opened in
+a different browser cannot complete. The sign-in page now says so, and shows
+the reason when a link fails rather than bouncing you to a blank form.
+
+This is a one-owner book, so once you have signed in the first time, turn
+**Allow new users to sign up** off in **Authentication → Sign In / Providers**.
+Row level security already stops anyone else reaching your rows — a stranger who
+signed up would see an empty book, not yours — but with signups off they cannot
+get an account at all. Leave it on until after your first sign-in, or you will
+lock yourself out before the owner exists.
+
+Supabase's built-in email sender is rate limited on the free tier, a handful of
+messages an hour, which is ample for one owner but easy to trip while testing.
+
 Every table is protected by row level security keyed to `auth.uid()`, so a row
 is only ever visible and writable to its owner. `schema.sql` has been applied to
 PostgreSQL 16 and that isolation tested, including that a cross-owner write is

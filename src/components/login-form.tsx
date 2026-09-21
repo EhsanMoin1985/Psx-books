@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { btnPrimary, btnPrimaryStyle, Note } from './ui';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
-export function LoginForm() {
+export function LoginForm({ next = '/' }: { next?: string }) {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -19,7 +19,9 @@ export function LoginForm() {
         setState('sending');
         const { error } = await db.auth.signInWithOtp({
           email,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+          },
         });
         if (error) {
           setState('error');
@@ -43,7 +45,12 @@ export function LoginForm() {
       <button type="submit" className={btnPrimary} style={btnPrimaryStyle} disabled={state === 'sending' || state === 'sent'}>
         {state === 'sending' ? 'Sending…' : state === 'sent' ? 'Link sent' : 'Email me a sign-in link'}
       </button>
-      {state === 'sent' && <Note>Check your inbox. The link signs you in and brings you back here.</Note>}
+      {state === 'sent' && (
+        <Note>
+          Check your inbox. Open the link in this browser, on this device: the sign-in flow cannot carry across to
+          another one.
+        </Note>
+      )}
       {state === 'error' && <Note tone="warn">{message}</Note>}
     </form>
   );
