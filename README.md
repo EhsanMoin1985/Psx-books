@@ -71,20 +71,31 @@ With no Supabase credentials the app runs on `psx-books-data.json`. Every
 figure on every screen is computed from that real data, but anything you add
 lasts only until the server restarts, and a banner says so.
 
+## Setting it up
+
+**[SETUP.md](SETUP.md) is the click-by-click version**: two free accounts, about
+ten minutes, no terminal. The rest of this section is the same ground for
+someone who would rather work from a shell.
+
 ## Connecting Supabase
 
 1. Create a project. Run `schema.sql` in the SQL editor.
 2. Put `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in
    `.env.local` (see `.env.example`).
 3. Start the app and sign in once with a magic link, so the owner row exists.
-4. Load the book:
+4. Load the book. The dashboard offers **Load the book** while the connected
+   database is empty; pressing it imports the 61 transactions, the prices and
+   the broker figures as the signed-in owner, with no service role key
+   involved. It refuses once the book holds transactions, so it cannot double
+   up a ledger.
+
+   `npm run seed` does the same thing from a shell, and needs
+   `SUPABASE_SERVICE_ROLE_KEY` and `OWNER_EMAIL` because it has no session to
+   work from:
 
    ```bash
    SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… OWNER_EMAIL=you@example.com npm run seed
    ```
-
-   It refuses to run against an owner who already has transactions unless you
-   pass `--force`, so it cannot double up a book.
 5. Open **Reconcile** and confirm cash proves on all 59 rows.
 
 ### Auth settings that matter

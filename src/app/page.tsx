@@ -2,6 +2,7 @@ import { DashboardShell, type PanelDef } from '@/components/dashboard/shell';
 import { Allocation, EquityAgainstFunds, IncomePanel, KeyFigures, LatestEntries, MoversPanel, ProofPanel } from '@/components/dashboard/panels';
 import { PageHeader } from '@/components/ui';
 import { SeedBanner } from '@/components/seed-banner';
+import { FirstRun } from '@/components/first-run';
 import { loadView } from '@/lib/data/view';
 import { saveLayout } from './actions';
 import { fmtDate } from '@/lib/money';
@@ -38,7 +39,11 @@ export default async function DashboardPage() {
         lede={`JS Global Capital account 7808. ${v.data.settings.statement?.period ?? ''}${v.pricedAt ? `, priced at ${fmtDate(v.pricedAt)}.` : '.'}`}
       />
       <SeedBanner mode={v.mode} />
-      <DashboardShell defs={DEFS} panels={panels} savedLayouts={v.data.settings.layouts ?? {}} onSave={saveLayout} />
+      {v.mode === 'supabase' && v.data.transactions.length === 0 ? (
+        <FirstRun />
+      ) : (
+        <DashboardShell defs={DEFS} panels={panels} savedLayouts={v.data.settings.layouts ?? {}} onSave={saveLayout} />
+      )}
     </>
   );
 }

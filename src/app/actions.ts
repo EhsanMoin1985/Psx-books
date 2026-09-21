@@ -139,6 +139,25 @@ export async function fillPlan(id: string, tradeDate: string, actualPrice: numbe
   return { error: null as string | null, txnId: created.id };
 }
 
+/**
+ * Loads the shipped book into a newly connected Supabase project, as the
+ * signed-in owner. Replaces the command line seed script, so setting the app
+ * up never needs a terminal or a service role key.
+ */
+export async function importSeedBook() {
+  const repo = await getRepo();
+  if (repo.mode !== 'supabase') {
+    return { error: 'There is no database connected to import into.', imported: null };
+  }
+  try {
+    const imported = await repo.importSeed();
+    refresh();
+    return { error: null as string | null, imported };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e), imported: null };
+  }
+}
+
 export async function deleteTxn(id: string) {
   const repo = await getRepo();
   await repo.deleteTxn(id);

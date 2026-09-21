@@ -2,7 +2,7 @@ import 'server-only';
 import type { Alert, BookData, Plan, Price, Settings, Txn, WatchRow } from '../types';
 import { supabaseConfigured } from '../supabase/config';
 import { supabaseServer } from '../supabase/server';
-import { seedBook } from './seed';
+import { seedBook, seedPrices, seedSettings, seedTransactions } from './seed';
 
 export type Mode = 'supabase' | 'local';
 
@@ -22,6 +22,10 @@ export interface Repo {
   addPlan(p: Omit<Plan, 'id' | 'created_at'>): Promise<Plan>;
   updatePlan(id: string, patch: Partial<Plan>): Promise<void>;
   deletePlan(id: string): Promise<void>;
+  /** How many transactions the book holds, for the first-run check. */
+  countTxns(): Promise<number>;
+  /** Loads the shipped book into an empty store. Refuses if anything is there. */
+  importSeed(): Promise<{ transactions: number; prices: number }>;
 }
 
 const uid = () => globalThis.crypto.randomUUID();
@@ -123,6 +127,14 @@ class LocalRepo implements Repo {
     const b = localBook();
     b.plans = b.plans.filter((x) => x.id !== id);
   }
+  async countTxns() {
+    return localBook().transactions.length;
+  }
+  async importSeed() {
+    // The local store is the seed already; there is nothing to import into.
+    const b = localBook();
+    return { transactions: b.transactions.length, prices: b.prices.length };
+  }
 }
 
 type Client = NonNullable<Awaited<ReturnType<typeof supabaseServer>>>;
@@ -209,6 +221,66 @@ class SupabaseRepo implements Repo {
   }
   async deletePlan(id: string) {
     await this.must(this.db.from('plans').delete().eq('id', id).select());
+  }
+
+  async countTxns() {
+    const { count, error } = await this.db.from('transactions').select('id', { count: 'exact', head: true });
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  }
+
+  /**
+   * Loads the shipped book into a new project.
+   *
+   * Everything is written as the signed-in owner: `owner` is left off each row
+   * so the column default fills it from the session, which is also what row
+   * level security checks. No service role key is involved, so none has to
+   * exist anywhere.
+   *
+   * `transactions` has no `seq` column, so statement order within a day is
+   * carried by `created_at`, set here in statement order.
+   */
+  async importSeed() {
+    if ((await this.countTxns()) > 0) {
+      throw new Error('This book already holds transactions. Nothing was imported.');
+    }
+
+    const base = Date.UTC(2020, 0, 1);
+    const rows = seedTransactions()
+      .slice()
+      .sort((a, b) => a.seq - b.seq)
+      .map((t, i) => ({
+        trade_date: t.trade_date,
+        type: t.type,
+        symbol: t.symbol,
+        qty: t.qty,
+        price: t.price,
+        commission: t.commission ?? 0,
+        amount: t.amount,
+        gross: t.gross,
+        stmt_balance: t.stmt_balance,
+        external: t.external,
+        voucher: t.voucher,
+        note: t.note,
+        source: t.source,
+        created_at: new Date(base + i * 1000).toISOString(),
+      }));
+
+    await this.must(this.db.from('transactions').insert(rows).select('id'));
+
+    const prices = seedPrices().map((p) => ({
+      symbol: p.symbol,
+      as_of: p.as_of,
+      close: p.close,
+      source: p.source,
+    }));
+    if (prices.length) {
+      await this.must(this.db.from('prices').upsert(prices, { onConflict: 'owner,symbol,as_of' }).select('symbol'));
+    }
+
+    await this.must(this.db.from('settings').upsert({ data: seedSettings() }).select('owner'));
+
+    return { transactions: rows.length, prices: prices.length };
   }
 }
 
